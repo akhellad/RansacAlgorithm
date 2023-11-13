@@ -1,48 +1,86 @@
 #include "ModelManager.hpp"
+#include "PlaneModel.hpp"
+#include "SphereModel.hpp"
 #include <iostream>
+#include <set>
+#include <algorithm>
 
-void ModelManager::AddModel(std::shared_ptr<GeometryModel> model) {
-    // Ajoutez un modèle à la liste des modèles gérés
-    models.push_back(model);
-}
+std::vector<Point3D> ModelManager::getInliers(const std::shared_ptr<GeometryModel>& model, 
+                                              const std::vector<Point3D>& data, 
+                                              double threshold) const {
+    std::vector<Point3D> inliers;
 
-bool ModelManager::RANSACFit(std::vector<Point3D>& data, int nIterations, double inlierThreshold, int minInliers) {
-    if (models.empty() || data.empty()) {
-        return false;
-    }
-
-    for (const auto& model : models) {
-        for (int iteration = 0; iteration < nIterations; ++iteration) {
-            // Sélectionnez un échantillon aléatoire de données
-            std::vector<Point3D> maybeInliers;
-            for (int i = 0; i < model->NumParametersRequired(); ++i) {
-                maybeInliers.push_back(data[rand() % data.size()]);
-            }
-
-            // Estimez les paramètres du modèle à partir de l'échantillon
-            if (!model->FitModel(maybeInliers)) {
-                continue;  // Échantillon invalide, réessayez
-            }
-
-            std::vector<Point3D> confirmedInliers;
-            for (const Point3D& point : data) {
-                // Calculez la distance de chaque point au modèle
-                double distance = model->CalculateDistance(point);
-
-                // Si le point est un inlier (distance inférieure à inlierThreshold), ajoutez-le aux inliers confirmés
-                if (distance < inlierThreshold) {
-                    confirmedInliers.push_back(point);
-                }
-            }
-
-            // Si le nombre d'inliers confirmés est supérieur ou égal à minInliers, le modèle est valide
-            if (confirmedInliers.size() >= minInliers) {
-                std::cout << "Model successfully fitted with " << confirmedInliers.size() << " inliers." << std::endl;
-                return true;  // Vous pouvez également renvoyer le modèle estimé ici
-            }
+    for (const auto& point : data) {
+        if (model->CalculateDistance(point) <= threshold) {
+            inliers.push_back(point);
         }
     }
 
-    std::cout << "No model found." << std::endl;
-    return false;  // Aucun modèle n'a été trouvé
+    return inliers;
 }
+
+std::vector<Point3D> ModelManager::getOutliers(const std::shared_ptr<GeometryModel>& model, 
+                                               const std::vector<Point3D>& data, 
+                                               double threshold) const {
+    std::vector<Point3D> outliers;
+
+    for (const auto& point : data) {
+        if (model->CalculateDistance(point) > threshold) {
+            outliers.push_back(point);
+        }
+    }
+
+    return outliers;
+}
+
+bool ModelManager::RANSACFit(const std::shared_ptr<GeometryModel>& model, const std::vector<Point3D>& data, int nIterations, double inlierThreshold, int minInliers) {
+    if (!model || data.empty()) {
+        return false;
+    }
+
+    bool modelFound = false;
+    int maxInliersCount = 0;
+    std::vector<Point3D> ResultsInliers;
+
+    for (int iteration = 0; iteration < nIterations; ++iteration) {
+        std::set<int> indices;
+        while (indices.size() < model->NumParametersRequired()) {
+            indices.insert(rand() % data.size());
+        }
+
+        std::vector<Point3D> maybeInliers;
+        for (int idx : indices) {
+            maybeInliers.push_back(data[idx]);
+        }
+        if (!model->FitModel(maybeInliers)) {
+            continue; // Échantillon invalide, réessayez
+        }
+
+        std::vector<Point3D> confirmedInliers;
+        for (const Point3D& point : data) {
+            if (model->CalculateDistance(point) < inlierThreshold) {
+                confirmedInliers.push_back(point);
+                ResultsInliers.push_back(point);
+            }
+        }
+
+        if (confirmedInliers.size() >= minInliers && confirmedInliers.size() > maxInliersCount) {
+            maxInliersCount = confirmedInliers.size();
+            modelFound = true;
+        }
+    }
+
+    if (modelFound) {
+        std::cout << "Best model found with " << maxInliersCount << " inliers." << std::endl;
+        // Vous pourriez également retourner le meilleur modèle ici si nécessaire
+        std::vector<Point3D> inliers = getInliers(model, data, inlierThreshold);
+        std::vector<Point3D> outliers = getOutliers(model, data, inlierThreshold);
+        std::string filename = "results.txt";
+        model->DisplayResults(inliers, outliers, filename);
+    } else {
+        std::cout << "No model found." << std::endl;
+    }
+
+    return modelFound;
+}
+

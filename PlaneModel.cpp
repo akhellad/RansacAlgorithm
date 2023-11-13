@@ -1,93 +1,65 @@
 #include "PlaneModel.hpp"
+#include <Eigen/Dense> 
+#include <iostream>
+#include <fstream>
 
-double A, B, C, D;
+void PlaneModel::DisplayResults(const std::vector<Point3D>& inliers, 
+                                const std::vector<Point3D>& outliers, 
+                                const std::string& filename) const {
+    std::ofstream file(filename, std::ios::app); // Append mode
 
-bool PlaneModel::FitModel(const std::vector<Point3D>& data, double inlierThreshold) {
+    file << "Plane Model Parameters:\n";
+    file << "A = " << A << ", B = " << B << ", C = " << C << ", D = " << D << "\n";
+
+    file << "Inliers:\n";
+    for (const auto& point : inliers) {
+        file << "Point(" << point.x << ", " << point.y << ", " << point.z << ")\n";
+    }
+
+    file << "Outliers:\n";
+    for (const auto& point : outliers) {
+        file << "Point(" << point.x << ", " << point.y << ", " << point.z << ")\n";
+    }
+    file.close();
+}
+
+#include <armadillo>
+
+bool PlaneModel::FitModel(const std::vector<Point3D>& data) {
     if (data.size() < NumParametersRequired()) {
-        return false;  // Pas suffisamment de points pour ajuster le modèle
+        return false; // Pas suffisamment de points
     }
 
-    // Initialisation des sommes
-    double sumX = 0.0, sumY = 0.0, sumZ = 0.0, sumXX = 0.0, sumXY = 0.0, sumXZ = 0.0, sumYY = 0.0, sumYZ = 0.0, sumZZ = 0.0;
-    size_t n = data.size();
+    arma::mat matA(data.size(), 3);
+    arma::vec vecB(data.size());
 
-    // Calcul des sommes
-    for (const Point3D& point : data) {
-        sumX += point.x;
-        sumY += point.y;
-        sumZ += point.z;
-        sumXX += point.x * point.x;
-        sumYY += point.y * point.y;
-        sumZZ += point.z * point.z;
-        sumXY += point.x * point.y;
-        sumXZ += point.x * point.z;
-        sumYZ += point.y * point.z;
+    for (size_t i = 0; i < data.size(); ++i) {
+        matA(i, 0) = data[i].x;
+        matA(i, 1) = data[i].y;
+        matA(i, 2) = 1.0; // Terme constant
+        vecB(i) = data[i].z;
     }
 
-    // Calcul des coefficients du modèle
-    double denominator = n * (sumXX + sumYY + sumZZ) - (sumX * sumX + sumY * sumY + sumZ * sumZ);
-    if (denominator == 0) {
-        return false;  // Les données ne permettent pas de calculer le modèle
-    }
+    // Résolution des moindres carrés
+    arma::vec solution = arma::solve(matA, vecB);
 
-    A = (n * (sumYZ * (sumXX + sumYY) - sumXY * (sumXY + sumXZ)) - sumY * (sumXZ * (sumXX + sumYY) - sumXY * (sumXY + sumYZ)) + sumZ * (sumXZ * (sumXY + sumXZ) - sumYY * (sumXY + sumYZ))) / denominator;
-    B = (n * (sumXZ * (sumXX + sumYY) - sumXY * (sumXY + sumXZ)) - sumX * (sumYZ * (sumXX + sumYY) - sumXY * (sumXY + sumYZ)) + sumZ * (sumYZ * (sumXY + sumXZ) - sumXZ * (sumXY + sumYZ))) / denominator;
-    C = (n * (sumXY * (sumXX + sumYY) - sumX * sumY * (sumXY + sumXZ)) - sumZ * (sumX * sumY * (sumXY + sumXZ) - sumXY * (sumXY + sumYZ)) + sumZ * (sumX * sumY * (sumXY + sumYZ) - sumYY * (sumXY + sumXZ))) / denominator;
-    D = (sumZ * (sumXZ * (sumXX + sumYY) - sumXY * (sumXY + sumXZ)) - sumX * (sumYZ * (sumXX + sumYY) - sumXY * (sumXY + sumYZ)) + sumZ * (sumYZ * (sumXY + sumXZ) - sumYY * (sumXY + sumYZ))) / denominator;
-
-    // Trouver les inliers en utilisant le modèle ajusté et un seuil
-    std::vector<Point3D> inliers;
-    for (const Point3D& point : data) {
-        double distance = CalculateDistance(point);
-        if (distance < inlierThreshold) {
-            inliers.push_back(point);
-        }
-    }
-
-    if (inliers.size() < NumParametersRequired()) {
-        return false;  // Pas suffisamment d'inliers pour ajuster le modèle
-    }
-
-    // Réajustez le modèle en utilisant uniquement les inliers
-    double sumX = 0.0, sumY = 0.0, sumZ = 0.0, sumXX = 0.0, sumXY = 0.0, sumXZ = 0.0, sumYY = 0.0, sumYZ = 0.0, sumZZ = 0.0;
-    size_t n = inliers.size();
-
-    for (const Point3D& inlier : inliers) {
-        sumX += inlier.x;
-        sumY += inlier.y;
-        sumZ += inlier.z;
-        sumXX += inlier.x * inlier.x;
-        sumYY += inlier.y * inlier.y;
-        sumZZ += inlier.z * inlier.z;
-        sumXY += inlier.x * inlier.y;
-        sumXZ += inlier.x * inlier.z;
-        sumYZ += inlier.y * inlier.z;
-    }
-
-    double denominator = n * (sumXX + sumYY + sumZZ) - (sumX * sumX + sumY * sumY + sumZ * sumZ);
-    if (denominator == 0) {
-        return false;  // Les inliers ne permettent pas de calculer le modèle
-    }
-
-    A = (n * (sumYZ * (sumXX + sumYY) - sumXY * (sumXY + sumXZ)) - sumY * (sumXZ * (sumXX + sumYY) - sumXY * (sumXY + sumYZ)) + sumZ * (sumXZ * (sumXY + sumXZ) - sumYY * (sumXY + sumYZ))) / denominator;
-    B = (n * (sumXZ * (sumXX + sumYY) - sumXY * (sumXY + sumXZ)) - sumX * (sumYZ * (sumXX + sumYY) - sumXY * (sumXY + sumYZ)) + sumZ * (sumYZ * (sumXY + sumXZ) - sumXZ * (sumXY + sumYZ))) / denominator;
-    C = (n * (sumXY * (sumXX + sumYY) - sumX * sumY * (sumXY + sumXZ)) - sumZ * (sumX * sumY * (sumXY + sumXZ) - sumXY * (sumXY + sumYZ)) + sumZ * (sumX * sumY * (sumXY + sumYZ) - sumYY * (sumXY + sumXZ))) / denominator;
-    D = (sumZ * (sumXZ * (sumXX + sumYY) - sumXY * (sumXY + sumXZ)) - sumX * (sumYZ * (sumXX + sumYY) - sumXY * (sumXY + sumYZ)) + sumZ * (sumYZ * (sumXY + sumXZ) - sumYY * (sumXY + sumYZ))) / denominator;
-
-    std::cout << "Plane Model Parameters:" << std::endl;
-    std::cout << "A = " << A << std::endl;
-    std::cout << "B = " << B << std::endl;
-    std::cout << "C = " << C << std::endl;
-    std::cout << "D = " << D << std::endl;
-
-    return true;
+    A = -solution(0);
+    B = -solution(1);
+    C = 1.0; // ou autre valeur selon votre formulation
+    D = -solution(2);
+    return true; // Le modèle a été ajusté avec succès
 }
 
-double PlaneModel::CalculateDistance(const Point3D& point) {
-    // Calculez la distance du point au modèle de plan
-    return std::abs(A * point.x + B * point.y + C * point.z + D) / std::sqrt(A * A + B * B + C * C);
-}
-int PlaneModel::NumParametersRequired() const {
-    // Indiquez le nombre de paramètres requis pour le modèle de plan (4 pour Ax + By + Cz + D = 0)
-    return 4;
+
+//afficher outlayer, parametres du plan et inliers
+
+double PlaneModel::CalculateDistance(const Point3D& point) const {
+    // Assurez-vous que A, B, C ne sont pas tous nuls pour éviter la division par zéro
+    if (A == 0 && B == 0 && C == 0) return std::numeric_limits<double>::max();
+
+    // Calculez la distance perpendiculaire du point au plan
+    double numerator = std::abs(A * point.x + B * point.y + C * point.z + D);
+    double denominator = std::sqrt(A * A + B * B + C * C);
+    
+    return numerator / denominator;
 }

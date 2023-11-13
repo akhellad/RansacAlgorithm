@@ -1,63 +1,63 @@
 #include "SphereModel.hpp"
+#include <iostream>
+#include <fstream>
 
-double centerX = 0.0 , centerY = 0.0 , centerZ = 0.0 , radius = 0.0;; 
+void SphereModel::DisplayResults(const std::vector<Point3D>& inliers, const std::vector<Point3D>& outliers, const std::string& filename) const {
+    std::ofstream file(filename, std::ios::app);
+    file << "Sphere Model Parameters:" << "\n";
+    file << "CenterX = " << centerX << ", CenterY = " << centerY << ", CenterZ = " << centerZ << "\n";
+    file << "Radius = " << radius << "\n";
+
+    file << "Inliers:" << "\n";
+    for (const auto& point : inliers) {
+        file << "Point(" << point.x << ", " << point.y << ", " << point.z << ")" << "\n";
+    }
+
+    file << "Outliers:" << "\n";
+    for (const auto& point : outliers) {
+        file << "Point(" << point.x << ", " << point.y << ", " << point.z << ")" << "\n";
+    }
+    file.close();
+}
 
 bool SphereModel::FitModel(const std::vector<Point3D>& data) {
     if (data.size() < NumParametersRequired()) {
-        return false;  // Pas suffisamment de points pour ajuster le modèle
+        return false; // Pas suffisamment de points
     }
 
-    // Initialisation des sommes
-    double sumX = 0.0, sumY = 0.0, sumZ = 0.0, sumXX = 0.0, sumYY = 0.0, sumZZ = 0.0, sumXY = 0.0, sumXZ = 0.0, sumYZ = 0.0;
-    size_t n = data.size();
+    Eigen::MatrixXd A(data.size(), 4);
+    Eigen::VectorXd b(data.size());
 
-    // Calcul des sommes
-    for (const Point3D& point : data) {
-        sumX += point.x;
-        sumY += point.y;
-        sumZ += point.z;
-        sumXX += point.x * point.x;
-        sumYY += point.y * point.y;
-        sumZZ += point.z * point.z;
-        sumXY += point.x * point.y;
-        sumXZ += point.x * point.z;
-        sumYZ += point.y * point.z;
+    for (size_t i = 0; i < data.size(); ++i) {
+        double x = data[i].x, y = data[i].y, z = data[i].z;
+        A(i, 0) = x * 2;
+        A(i, 1) = y * 2;
+        A(i, 2) = z * 2;
+        A(i, 3) = -1.0;
+        b(i) = x * x + y * y + z * z;
     }
 
-    // Calcul des coefficients du modèle
-    double denominator = n * (sumXX + sumYY + sumZZ) - (sumX * sumX + sumY * sumY + sumZ * sumZ);
-    if (denominator == 0) {
-        return false;  // Les données ne permettent pas de calculer le modèle
-    }
+    Eigen::VectorXd solution = A.colPivHouseholderQr().solve(b);
 
-    // Calcul du centre de la sphère
-    centerX = (sumY * (sumYY + sumZZ) - sumZ * (sumXY + sumXZ)) / denominator;
-    centerY = (sumZ * (sumXX + sumZZ) - sumX * (sumXY + sumYZ)) / denominator;
-    centerZ = (sumX * (sumXX + sumYY) - sumY * (sumXY + sumYZ)) / denominator;
+    // Les coordonnées du centre de la sphère
+    centerX = solution(0);
+    centerY = solution(1);
+    centerZ = solution(2);
 
-    radius = std::sqrt((sumX * sumX + sumY * sumY + sumZ * sumZ - (sumXX + sumYY + sumZZ)) / n);
+    // Calcul du rayon de la sphère
+    double rSquare = solution(3) + centerX * centerX + centerY * centerY + centerZ * centerZ;
+    radius = std::sqrt(std::abs(rSquare));
 
-    std::cout << "Sphere Model Parameters:" << std::endl;
-    std::cout << "CenterX = " << centerX << std::endl;
-    std::cout << "CenterY = " << centerY << std::endl;
-    std::cout << "CenterZ = " << centerZ << std::endl;
-    std::cout << "Radius = " << radius << std::endl;
-
-    return true;  // Le modèle a été ajusté avec succès
+    return true; // Le modèle a été ajusté avec succès
 }
 
+//afficher outlayer, centre et radius de la sphere et inliers
 
-double SphereModel::CalculateDistance(const Point3D& point) {
+double SphereModel::CalculateDistance(const Point3D& point) const{
     // Calculez la distance du point au modèle de sphère
     double distance = std::sqrt((point.x - centerX) * (point.x - centerX) +
                                (point.y - centerY) * (point.y - centerY) +
                                (point.z - centerZ) * (point.z - centerZ));
-
     // La distance est la différence entre la distance au centre de la sphère et le rayon de la sphère
     return std::abs(distance - radius);
-}
-
-int SphereModel::NumParametersRequired() const {
-    // Indiquez le nombre de paramètres requis pour le modèle de sphère (4 pour un centre de sphère et un rayon)
-    return 4;
 }

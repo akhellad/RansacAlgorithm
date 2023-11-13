@@ -11,3 +11,4 @@ public:
 };
 
 #endif // POINT3D_HPP
+

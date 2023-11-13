@@ -1,68 +1,109 @@
-#include <iostream>
-#include <vector>
-#include <cstdlib>
-#include <ctime>
 #include "Point3D.hpp"
 #include "ModelManager.hpp"
 #include "SphereModel.hpp"
 #include "PlaneModel.hpp"
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <limits>
 
-int main() {
-    // Initialisation du générateur de nombres aléatoires
-    std::srand(static_cast<unsigned>(std::time(nullptr)));
+void normalizePoints(std::vector<Point3D>& points) {
+    double sumX = 0, sumY = 0, sumZ = 0;
+    double sumX2 = 0, sumY2 = 0, sumZ2 = 0;
+    int n = points.size();
 
-    // Génération de points 3D aléatoires
-    std::vector<Point3D> randomData;
-    int numRandomPoints = 100;  // Nombre de points 3D aléatoires à générer
-    for (int i = 0; i < numRandomPoints; ++i) {
-        double x = static_cast<double>(std::rand()) / RAND_MAX;
-        double y = static_cast<double>(std::rand()) / RAND_MAX;
-        double z = static_cast<double>(std::rand()) / RAND_MAX;
-        randomData.push_back(Point3D(x, y, z));
+    // Calculer les sommes et les sommes des carrés
+    for (const auto& point : points) {
+        sumX += point.x;
+        sumY += point.y;
+        sumZ += point.z;
+
+        sumX2 += point.x * point.x;
+        sumY2 += point.y * point.y;
+        sumZ2 += point.z * point.z;
     }
 
-    // Génération de points 3D pour une sphère
-    std::vector<Point3D> sphereData;
-    double sphereRadius = 1.0;  // Rayon de la sphère
-    int numSpherePoints = 100;  // Nombre de points sur la sphère
+    // Calculer la moyenne et l'écart-type
+    double meanX = sumX / n;
+    double meanY = sumY / n;
+    double meanZ = sumZ / n;
 
-    for (int i = 0; i < numSpherePoints; ++i) {
-        double theta = 2 * M_PI * i / numSpherePoints;
-        double phi = M_PI * i / numSpherePoints;
-        double x = sphereRadius * sin(phi) * cos(theta);
-        double y = sphereRadius * sin(phi) * sin(theta);
-        double z = sphereRadius * cos(phi);
-        sphereData.push_back(Point3D(x, y, z));
+    double stdX = std::sqrt(sumX2 / n - meanX * meanX);
+    double stdY = std::sqrt(sumY2 / n - meanY * meanY);
+    double stdZ = std::sqrt(sumZ2 / n - meanZ * meanZ);
+
+    // Normaliser chaque point
+    for (auto& point : points) {
+        point.x = (point.x - meanX) / stdX;
+        point.y = (point.y - meanY) / stdY;
+        point.z = (point.z - meanZ) / stdZ;
     }
+}
 
-    // Génération de points 3D pour un plan
-    std::vector<Point3D> planeData;
-    double planeNormalX = 0.0;
-    double planeNormalY = 0.0;
-    double planeNormalZ = 1.0;  // Normale du plan
 
-    for (double x = -5.0; x <= 5.0; x += 1.0) {
-        for (double y = -5.0; y <= 5.0; y += 1.0) {
-            double z = 0.0;  // Plan z = 0
-            planeData.push_back(Point3D(x, y, z));
+std::vector<Point3D> ReadPointsFromCSV(const std::string& filename) {
+    std::vector<Point3D> points;
+    std::ifstream file(filename);
+    std::string line;
+
+    while (std::getline(file, line)) {
+        std::stringstream lineStream(line);
+        std::string cell;
+        std::vector<double> pointData;
+
+        while (std::getline(lineStream, cell, ',')) {
+            pointData.push_back(std::stod(cell));
+        }
+
+        if (pointData.size() >= 3) {
+            points.emplace_back(pointData[0], pointData[1], pointData[2]);
         }
     }
 
-    ModelManager modelManager;
+    return points;
+}
 
-    // Test de l'ajustement du modèle de sphère
-    if (modelManager.RANSACFit(randomData, 1000, 0.01, 1)) {
+int main() {
+    std::vector<Point3D> spherePoints = ReadPointsFromCSV("sphere.csv");
+    std::vector<Point3D> cylinderLowResPoints = ReadPointsFromCSV("cylinder-points-low-res.csv");
+    std::vector<Point3D> cylinderHighResPoints = ReadPointsFromCSV("cylinder-points-high-res.csv");
+    std::vector<Point3D> planePoints = ReadPointsFromCSV("plane.csv");
+
+    // Ajout de modèles à ModelManager et exécution de RANSAC sur ces données
+    ModelManager modelManager;
+      // Création et ajout des modèles géométriques
+    std::shared_ptr<GeometryModel> sphereModel = std::make_shared<SphereModel>();
+    std::shared_ptr<GeometryModel> planeModel = std::make_shared<PlaneModel>();
+    // Ajoutez ici les modèles pour les cylindres à basse et haute résolution
+    // modelManager.AddModel(cylinderLowResModel);
+    // modelManager.AddModel(cylinderHighResModel);
+
+    // Paramètres RANSAC
+    int numIterations = 1000;
+    double inlierThreshold = 0.001;
+    int minInliers = 100;
+
+    // Exécution de RANSAC pour chaque ensemble de données
+    std::cout << "\nRANSAC sur les données du plan:" << std::endl;
+    if (modelManager.RANSACFit(planeModel, planePoints, numIterations, inlierThreshold, minInliers)) {
+        std::cout << "Modèle de plan ajusté avec succès." << std::endl;
+    } else {
+        std::cout << "Aucun modèle de plan valide trouvé." << std::endl;
+    }
+
+    std::cout << "RANSAC sur les données de la sphère:" << std::endl;
+    if (modelManager.RANSACFit(sphereModel, spherePoints, numIterations, inlierThreshold, minInliers)) {
         std::cout << "Modèle de sphère ajusté avec succès." << std::endl;
     } else {
         std::cout << "Aucun modèle de sphère valide trouvé." << std::endl;
     }
 
-    // Test de l'ajustement du modèle de plan
-    if (modelManager.RANSACFit(randomData, 1000, 0.01, 1)) {
-        std::cout << "Modèle de plan ajusté avec succès." << std::endl;
-    } else {
-        std::cout << "Aucun modèle de plan valide trouvé." << std::endl;
-    }
+
+    // Répétez le processus pour les données des cylindres
 
     return 0;
 }

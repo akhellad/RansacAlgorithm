@@ -1,22 +1,25 @@
-CXX = g++
-CXXFLAGS = -std=c++11
-
-# Liste des fichiers source
-SRCS = main.cpp ModelManager.cpp PlaneModel.cpp SphereModel.cpp
-
-# Liste des fichiers objets générés
-OBJS = $(SRCS:.cpp=.o)
+CC=g++
+CFLAGS=-std=c++11 -I/usr/include/eigen3
+LDFLAGS=-larmadillo -lblas -llapack
+OBJ=main.o ModelManager.o PlaneModel.o SphereModel.o
 
 # Nom du fichier exécutable
-TARGET = ransac_example
+EXEC=ransac_example
 
-all: $(TARGET)
+all:	$(EXEC)
 
-$(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJS)
+$(EXEC):	$(OBJ)
+	$(CC) $(OBJ) -o $@ $(LDFLAGS)
 
-%.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $<
+%.o:	%.cpp
+	$(CC) -c $< -o $@ $(CFLAGS)
 
-clean:
-	rm -f $(OBJS) $(TARGET)
+clean: 
+	rm -f $(OBJ)
+
+fclean: clean
+	rm -f $(EXEC)
+
+re:	fclean all
+
+.PHONY:	all clean fclean re
