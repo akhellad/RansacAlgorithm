@@ -6,7 +6,7 @@ import csv
 x_coords = []
 y_coords = []
 z_coords = []
-with open('sphere.csv', 'r') as file:
+with open('results/results_LowRes_cylinder_inliers.csv', 'r') as file:
     reader = csv.reader(file)
     for row in reader:
         x_coords.append(float(row[0]))

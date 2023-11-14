@@ -1,6 +1,6 @@
-#include "ModelManager.hpp"
-#include "PlaneModel.hpp"
-#include "SphereModel.hpp"
+#include "../includes/ModelManager.hpp"
+#include "../includes/PlaneModel.hpp"
+#include "../includes/SphereModel.hpp"
 #include <iostream>
 #include <set>
 #include <algorithm>
@@ -33,7 +33,7 @@ std::vector<Point3D> ModelManager::getOutliers(const std::shared_ptr<GeometryMod
     return outliers;
 }
 
-bool ModelManager::RANSACFit(const std::shared_ptr<GeometryModel>& model, const std::vector<Point3D>& data, int nIterations, double inlierThreshold, int minInliers) {
+bool ModelManager::RANSACFit(const std::shared_ptr<GeometryModel>& model, const std::vector<Point3D>& data, int nIterations, double inlierThreshold, int minInliers, const std::string& dataType) {
     if (!model || data.empty()) {
         return false;
     }
@@ -71,12 +71,11 @@ bool ModelManager::RANSACFit(const std::shared_ptr<GeometryModel>& model, const 
     }
 
     if (modelFound) {
-        std::cout << "Best model found with " << maxInliersCount << " inliers." << std::endl;
         // Vous pourriez également retourner le meilleur modèle ici si nécessaire
         std::vector<Point3D> inliers = getInliers(model, data, inlierThreshold);
         std::vector<Point3D> outliers = getOutliers(model, data, inlierThreshold);
-        std::string filename = "results.txt";
-        model->DisplayResults(inliers, outliers, filename);
+        std::string filename = "results/results";
+        model->DisplayResults(inliers, outliers, filename, dataType);
     } else {
         std::cout << "No model found." << std::endl;
     }

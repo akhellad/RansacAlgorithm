@@ -1,23 +1,33 @@
-#include "SphereModel.hpp"
+#include "../includes/SphereModel.hpp"
 #include <iostream>
 #include <fstream>
 
-void SphereModel::DisplayResults(const std::vector<Point3D>& inliers, const std::vector<Point3D>& outliers, const std::string& filename) const {
-    std::ofstream file(filename, std::ios::app);
-    file << "Sphere Model Parameters:" << "\n";
-    file << "CenterX = " << centerX << ", CenterY = " << centerY << ", CenterZ = " << centerZ << "\n";
-    file << "Radius = " << radius << "\n";
+void SphereModel::DisplayResults(const std::vector<Point3D>& inliers, 
+                                 const std::vector<Point3D>& outliers, 
+                                 const std::string& filename, 
+                                 const std::string& dataType) const {
+    // Enregistrement des paramètres de la sphère
+    std::ofstream file_params(filename + "_sphere_params.csv");
+    file_params << "Parameter,Value\n";
+    file_params << "CenterX," << centerX << "\n";
+    file_params << "CenterY," << centerY << "\n";
+    file_params << "CenterZ," << centerZ << "\n";
+    file_params << "Radius," << radius << "\n";
+    file_params.close();
 
-    file << "Inliers:" << "\n";
+    // Enregistrement des inliers
+    std::ofstream file_inliers(filename + "_sphere_inliers.csv");
     for (const auto& point : inliers) {
-        file << "Point(" << point.x << ", " << point.y << ", " << point.z << ")" << "\n";
+        file_inliers << point.x << "," << point.y << "," << point.z << "\n";
     }
+    file_inliers.close();
 
-    file << "Outliers:" << "\n";
+    // Enregistrement des outliers
+    std::ofstream file_outliers(filename + "_sphere_outliers.csv");
     for (const auto& point : outliers) {
-        file << "Point(" << point.x << ", " << point.y << ", " << point.z << ")" << "\n";
+        file_outliers << point.x << "," << point.y << "," << point.z << "\n";
     }
-    file.close();
+    file_outliers.close();
 }
 
 bool SphereModel::FitModel(const std::vector<Point3D>& data) {

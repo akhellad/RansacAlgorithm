@@ -12,7 +12,8 @@ public:
     virtual double CalculateDistance(const Point3D& point) const = 0;
     virtual int NumParametersRequired() const = 0;
     virtual void DisplayResults(const std::vector<Point3D>& inliers, 
-                                const std::vector<Point3D>& outliers, const std::string& filename) const = 0;
+                                const std::vector<Point3D>& outliers, const std::string& filename,
+                                const std::string& dataType) const = 0;
 };
 
 #endif // GEOMETRYMODEL_HPP
