@@ -1,54 +1,50 @@
-RANSAC Algorithm Project
-Description
+# RANSAC Algorithm Project
 
-Ce projet implémente l'algorithme RANSAC (RANdom SAmple Consensus) pour l'ajustement de modèles géométriques tels que les plans, les sphères et les cylindres à partir de données 3D. Le programme est écrit en C++ et utilise les bibliothèques Armadillo et Eigen pour les opérations mathématiques. Un script Python est également fourni pour visualiser les résultats.
-Installation\n
-Prérequis\n
+## Description
+Ce projet implémente l'algorithme RANSAC (RANdom SAmple Consensus) en C++ pour ajuster des modèles géométriques (sphère, plan, cylindre) à des ensembles de données 3D. Un script Python est également fourni pour visualiser les résultats.
 
-    Compilateur C++ (g++, clang++, etc.)
-    CMake (optionnel, pour la construction)
-    Bibliothèque Armadillo
-    Bibliothèque Eigen
-    Python 3
-    Bibliothèques Python : matplotlib, numpy
+## Prérequis
+Pour exécuter ce projet, vous aurez besoin des éléments suivants :
+- Un compilateur C++ prenant en charge le standard C++11 (par exemple, GCC)
+- Bibliothèque Armadillo pour les opérations matricielles
+- Bibliothèque Eigen pour les calculs de vecteurs et de matrices
+- Python 3.x pour exécuter le script de visualisation
+- Bibliothèques Python : matplotlib, numpy
 
-Installation des bibliothèques C++
-Armadillo
+## Installation des bibliothèques
 
-Sur Ubuntu/Debian :
-
+### Armadillo
+Sous Ubuntu, vous pouvez installer Armadillo en utilisant :
+```bash
 sudo apt-get install libarmadillo-dev
+```
 
-Sur Fedora :
-
-sudo dnf install armadillo-devel
-
-Eigen
-
-Sur Ubuntu/Debian :
-
+### Eigen
+Sous Ubuntu, installez Eigen avec :
+```bash
 sudo apt-get install libeigen3-dev
+```
 
-Sur Fedora :
-
-sudo dnf install eigen3-devel
-
-Changer chemins des fichiers .csv dans srcs/main.cpp
-
-Installation des bibliothèques Python
-
+### Bibliothèques Python
+Installez les bibliothèques Python nécessaires avec pip :
+```bash
 pip install matplotlib numpy
+```
 
-Compilation du programme
-
-Dans le répertoire principal du projet :
-
+## Compilation du programme
+Le projet utilise un Makefile pour la compilation. Pour compiler le programme, exécutez :
+```bash
 make
+```
 
-Cela générera un exécutable nommé Ransac.
-
-Changer chemins des resultats .csv dans le script python en fonction de la visualisation souhaitée.
-
-Executer le script Python : 
-
-Python visualiser_points_3d.py
+## Exécution du programme
+Pour exécuter le programme, utilisez :
+```bash
+./Ransac
+```
+Ce programme lira les ensembles de données (fichiers .csv), appliquera l'algorithme RANSAC et stockera les résultats dans des fichiers de sortie.
+Visualisation des résultats
+Le script Python fourni peut être utilisé pour visualiser les résultats. Exécutez le script en passant le chemin des fichiers de sortie générés par le programme C++ :
+```bash
+python visualize_results.py <chemin_vers_les_fichiers_de_sortie>
+```

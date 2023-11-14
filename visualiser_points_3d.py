@@ -1,12 +1,20 @@
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import csv
+import sys
 
 # Lire les données depuis le fichier CSV
 x_coords = []
 y_coords = []
 z_coords = []
-with open('results/results_LowRes_cylinder_inliers.csv', 'r') as file:
+
+if len(sys.argv) < 2:
+    print("Please provide a filename as an argument.")
+    exit()
+
+filename = sys.argv[1]
+
+with open(filename, 'r') as file:
     reader = csv.reader(file)
     for row in reader:
         x_coords.append(float(row[0]))
