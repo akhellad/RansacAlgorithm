@@ -2,8 +2,8 @@ RANSAC Algorithm Project
 Description
 
 Ce projet implémente l'algorithme RANSAC (RANdom SAmple Consensus) pour l'ajustement de modèles géométriques tels que les plans, les sphères et les cylindres à partir de données 3D. Le programme est écrit en C++ et utilise les bibliothèques Armadillo et Eigen pour les opérations mathématiques. Un script Python est également fourni pour visualiser les résultats.
-Installation
-Prérequis
+Installation\n
+Prérequis\n
 
     Compilateur C++ (g++, clang++, etc.)
     CMake (optionnel, pour la construction)
