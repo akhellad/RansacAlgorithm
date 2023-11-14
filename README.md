@@ -43,7 +43,8 @@ Pour exécuter le programme, utilisez :
 ./Ransac
 ```
 Ce programme lira les ensembles de données (fichiers .csv), appliquera l'algorithme RANSAC et stockera les résultats dans des fichiers de sortie.
-Visualisation des résultats
+
+## Visualisation des résultats
 Le script Python fourni peut être utilisé pour visualiser les résultats. Exécutez le script en passant le chemin des fichiers de sortie générés par le programme C++ :
 ```bash
 python visualize_results.py <chemin_vers_les_fichiers_de_sortie>
